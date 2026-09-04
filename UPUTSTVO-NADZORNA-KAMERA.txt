@@ -1,0 +1,16 @@
+PARKVISION AI - MODUL NADZORNE KAMERE
+
+1. Kopirajte projekat u C:\xampp\htdocs\smart-parking.
+2. U assets\videos stavite MP4 i nazovite ga nadzorna-kamera.mp4.
+3. U ai-service\models mora da postoji vas obuceni best.pt.
+4. Pokrenite XAMPP Apache.
+5. U terminalu otvorite ai-service i pokrenite:
+   .venv\Scripts\activate
+   pip install -r requirements.txt
+   python app.py
+6. Prijavite se kao admin i kliknite "Nadzorna kamera".
+
+Prvi start moze automatski preuzeti yolo11n.pt za detekciju vozila.
+Podrazumevano rastojanje kontrolnih linija je 10 m, a ogranicenje 40 km/h.
+VAZNO: rezultat je demonstraciona procena brzine, ne zakonski validno merenje.
+Prolasci se prikazuju samo u live traci i ne cuvaju se u bazi podataka.

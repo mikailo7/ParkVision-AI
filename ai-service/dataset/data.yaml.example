@@ -1,0 +1,6 @@
+path: C:/xampp/htdocs/smart-parking/ai-service/dataset
+train: images/train
+val: images/val
+test: images/test
+names:
+  0: license_plate

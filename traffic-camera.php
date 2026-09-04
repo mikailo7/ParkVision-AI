@@ -1,0 +1,7 @@
+<?php require 'config.php';requireAdmin();$title='Nadzorna kamera';require 'includes/header.php';?>
+<div class="page-head"><div><p class="eyebrow">ADMIN · VIDEO ANALITIKA</p><h1>Nadzorna kamera</h1><p>Automatsko očitavanje tablica i procena brzine vozila na ulazu u parkiralište.</p></div><span class="live"><i></i> KAMERA 01</span></div>
+<section class="traffic-layout"><div class="card traffic-screen"><div id="trafficState" class="traffic-message"><div class="radar"></div><h2>Priprema nadzorne kamere…</h2><p>Video će se automatski analizirati.</p></div><video id="trafficVideo" controls muted playsinline hidden></video></div>
+<aside class="card live-panel"><div class="live-panel-head"><div><p class="eyebrow">LIVE PODACI</p><h2>Prolasci uživo</h2></div><span id="trafficCount" class="live-counter">0</span></div><div id="liveFeed" class="live-feed"><div class="feed-empty"><span>●</span><p>Čekanje prvog vozila…</p></div></div></aside></section>
+<section class="card control-strip"><div><b>Rastojanje linija</b><label><input id="distance" type="number" min="1" step="0.5" value="10"> m</label></div><div><b>Ograničenje</b><label><input id="limit" type="number" min="5" value="40"> km/h</label></div><button id="analyzeAgain" class="btn primary">Ponovo analiziraj snimak</button><small>Brzina predstavlja demonstracionu procenu zasnovanu na poznatom rastojanju i vremenu prolаска.</small></section>
+<script>window.trafficPage={analyzeUrl:<?=json_encode(TRAFFIC_AI_URL)?>};</script><script src="assets/traffic.js"></script>
+<?php require 'includes/footer.php';?>

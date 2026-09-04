@@ -1,0 +1,6 @@
+/data/*.sqlite
+/uploads/*
+!/uploads/.gitkeep
+/ai-service/venv/
+__pycache__/
+

@@ -1,0 +1,2 @@
+Ovde stavite izabrani snimak nadzorne kamere i nazovite ga tacno: nadzorna-kamera.mp4
+Video mora biti snimljen nepokretnom kamerom. Vozila treba da predju obe virtuelne linije.
