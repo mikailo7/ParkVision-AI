@@ -1,15 +1,11 @@
 import base64
-import hashlib
-import json
 import os
 import re
-import subprocess
 import time
 import uuid
 from pathlib import Path
 import cv2
 import easyocr
-import imageio_ffmpeg
 import numpy as np
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
@@ -120,29 +116,14 @@ def analyze_traffic():
         return jsonify(error="Nedostaje assets/videos/nadzorna-kamera.mp4"), 404
     if model is None:
         return jsonify(error="Nedostaje ai-service/models/best.pt"), 503
+    if vehicle_model is None:
+        vehicle_model = YOLO(vehicle_model_path)
+
     payload = request.get_json(silent=True) or {}
-    force = bool(payload.get("force", False))
     distance_m = max(1.0, float(payload.get("distance_m", 10)))
     speed_limit = max(5, int(payload.get("speed_limit", 40)))
     line_a_ratio = min(0.80, max(0.15, float(payload.get("line_a", 0.42))))
     line_b_ratio = min(0.92, max(line_a_ratio + 0.08, float(payload.get("line_b", 0.68))))
-    video_stat = camera_video.stat()
-    model_stamp = model_path.stat().st_mtime_ns if model_path.exists() else 0
-    cache_source = f"{video_stat.st_size}:{video_stat.st_mtime_ns}:{model_stamp}:{distance_m}:{speed_limit}:{line_a_ratio}:{line_b_ratio}"
-    cache_key = hashlib.sha256(cache_source.encode()).hexdigest()[:16]
-    cached_video_name = f"traffic-{cache_key}.mp4"
-    cached_video_path = traffic_results / cached_video_name
-    cached_json_path = traffic_results / f"traffic-{cache_key}.json"
-    if not force and cached_video_path.exists() and cached_json_path.exists():
-        try:
-            cached = json.loads(cached_json_path.read_text(encoding="utf-8"))
-            cached.update(ok=True, cached=True,
-                result_url=request.host_url.rstrip("/")+"/traffic/results/"+cached_video_name)
-            return jsonify(cached)
-        except (OSError, ValueError):
-            pass
-    if vehicle_model is None:
-        vehicle_model = YOLO(vehicle_model_path)
     capture = cv2.VideoCapture(str(camera_video))
     if not capture.isOpened():
         return jsonify(error="Video nije moguće otvoriti"), 422
@@ -152,14 +133,8 @@ def analyze_traffic():
     height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
     total_frames = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
     line_a, line_b = int(height * line_a_ratio), int(height * line_b_ratio)
-    result_id_stem = f"traffic-{cache_key}"
-    temporary_path = traffic_results / f"{result_id_stem}.avi"
-    result_name = f"{result_id_stem}.mp4"
-    result_path = traffic_results / result_name
-    writer = cv2.VideoWriter(str(temporary_path), cv2.VideoWriter_fourcc(*"MJPG"), fps, (width, height))
-    if not writer.isOpened():
-        capture.release()
-        return jsonify(error="Nije moguće napraviti obrađeni video"), 500
+    result_name = f"traffic-{uuid.uuid4().hex[:10]}.mp4"
+    writer = cv2.VideoWriter(str(traffic_results / result_name), cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
     tracks, events, frame_no = {}, [], 0
     started = time.time()
 
@@ -204,24 +179,10 @@ def analyze_traffic():
         writer.write(frame)
 
     capture.release(); writer.release()
-    if frame_no == 0:
-        temporary_path.unlink(missing_ok=True)
-        return jsonify(error="Ulazni video nema čitljive frejmove"), 422
-    try:
-        subprocess.run([
-            imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-i", str(temporary_path),
-            "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
-            "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", str(result_path)
-        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-    except subprocess.CalledProcessError as error:
-        return jsonify(error="Pretvaranje videa u H.264 nije uspelo", details=error.stderr.decode(errors="ignore")[-500:]), 500
-    finally:
-        temporary_path.unlink(missing_ok=True)
-    response_data = dict(events=events,fps=round(fps,2),frames=total_frames,
-        processing_seconds=round(time.time()-started,1),distance_m=distance_m,
-        speed_limit=speed_limit,cached=False)
-    cached_json_path.write_text(json.dumps(response_data,ensure_ascii=False),encoding="utf-8")
-    return jsonify(ok=True,result_url=request.host_url.rstrip("/")+"/traffic/results/"+result_name,**response_data)
+    return jsonify(ok=True,events=events,
+        result_url=request.host_url.rstrip("/")+"/traffic/results/"+result_name,
+        fps=round(fps,2),frames=total_frames,processing_seconds=round(time.time()-started,1),
+        distance_m=distance_m,speed_limit=speed_limit)
 
 @app.get("/traffic/results/<path:filename>")
 def traffic_result(filename):

@@ -9,4 +9,4 @@ Skup podataka mora imati foldere `images/train`, `images/val`, `images/test` i o
 3. Kopirati dobijeni `runs/license_plate_yolo11n/weights/best.pt` u `models/best.pt`.
 4. Pokrenuti `python app.py`.
 
-U radu navesti poreklo i licencu dataseta, broj slika i podelu na trening, validaciju i test.
+
